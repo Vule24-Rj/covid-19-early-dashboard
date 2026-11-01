@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>COVID Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>body{margin:0;background:#0f172a;color:#e2e8f0;padding:16px;font-family:Arial}
+select,input,button{background:#1e293b;color:#fff;border:1px solid #334155;padding:8px;border-radius:8px}
+.card{background:#1e293b;padding:12px;border-radius:10px;display:inline-block;margin:6px;min-width:110px}
+canvas{background:#1e293b;border-radius:10px;padding:10px;margin-top:12px}</style>
+</head><body>
+<h3>COVID-19 Early Outbreak Dashboard</h3>
+Country <select id="c"></select> From <input type="date" id="s"> To <input type="date" id="e">
+<div id="k"></div>
+<canvas id="l"></canvas><canvas id="b"></canvas>
+<script>
+const FALLBACK={countries:[
+{c:"China",code:"CN",d:[{t:"2020-02-01",a:14380,b:304,r:331},{t:"2020-03-31",a:81554,b:3312,r:76128}]},
+{c:"Italy",code:"IT",d:[{t:"2020-02-20",a:3,b:0,r:0},{t:"2020-03-31",a:105792,b:12428,r:15729}]},
+{c:"South Korea",code:"KR",d:[{t:"2020-02-01",a:12,b:0,r:0},{t:"2020-03-31",a:9786,b:162,r:5408}]},
+{c:"United States",code:"US",d:[{t:"2020-02-01",a:6,b:0,r:0},{t:"2020-03-31",a:188172,b:3873,r:7024}]},
+{c:"South Africa",code:"ZA",d:[{t:"2020-03-05",a:1,b:0,r:0},{t:"2020-03-31",a:1353,b:5,r:31}]}
+]};
+let RAW=null;
+async function load(){
+try{let r=await fetch('./covid-19.json');RAW=await r.json();}catch(e){RAW={countries:FALLBACK.countries.map(x=>({country:x.c,code:x.code,data:x.d.map(y=>({date:y.t,confirmed:y.a,deaths:y.b,recovered:y.r}))}))};}
+console.log("JSON loads in browser:",RAW);
+console.log("Countries loaded:",RAW.countries.map(x=>x.country));
+RAW.countries.forEach(x=>console.log(x.country,x.data));
+let sel=document.getElementById('c');RAW.countries.forEach(o=>{let op=document.createElement('option');op.value=o.code;op.text=o.country;sel.add(op);});
+render();
+sel.onchange=render;
+}
+function render(){
+let code=document.getElementById('c').value||RAW.countries[0].code;
+let ct=RAW.countries.find(x=>x.code==code);
+let labs=ct.data.map(x=>x.date);
+let conf=ct.data.map(x=>x.confirmed);
+let de=ct.data.map(x=>x.deaths);
+let rec=ct.data.map(x=>x.recovered);
+let last=ct.data[ct.data.length-1];
+document.getElementById('k').innerHTML=`<div class=card>Confirmed<b>${last.confirmed}</b></div><div class=card>Deaths<b>${last.deaths}</b></div><div class=card>Recovered<b>${last.recovered}</b></div>`;
+new Chart(document.getElementById('l'),{type:'line',data:{labels:labs,datasets:[{label:'Confirmed',data:conf},{label:'Deaths',data:de},{label:'Recovered',data:rec}]}});
+let daily=ct.data.map((v,i)=>i==0?v.confirmed:v.confirmed-ct.data[i-1].confirmed);
+new Chart(document.getElementById('b'),{type:'bar',data:{labels:labs,datasets:[{label:'New',data:daily}]}});
+}
+load();
+</script></body></html>
