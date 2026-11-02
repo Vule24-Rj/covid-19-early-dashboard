@@ -1,46 +1,73 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>COVID Dashboard</title>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COVID-19 Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>body{margin:0;background:#0f172a;color:#e2e8f0;padding:16px;font-family:Arial}
-select,input,button{background:#1e293b;color:#fff;border:1px solid #334155;padding:8px;border-radius:8px}
-.card{background:#1e293b;padding:12px;border-radius:10px;display:inline-block;margin:6px;min-width:110px}
-canvas{background:#1e293b;border-radius:10px;padding:10px;margin-top:12px}</style>
-</head><body>
-<h3>COVID-19 Early Outbreak Dashboard</h3>
-Country <select id="c"></select> From <input type="date" id="s"> To <input type="date" id="e">
-<div id="k"></div>
-<canvas id="l"></canvas><canvas id="b"></canvas>
+<style>
+body{font-family:Arial;background:#f5f7fb;margin:0;padding:15px}
+h2{text-align:center;color:#1e293b}
+.filters{background:white;padding:15px;border-radius:10px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+select,input,button{padding:10px;border-radius:8px;border:1px solid #cbd5e1}
+button{background:#2563eb;color:white;border:none;cursor:pointer}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin:20px 0}
+.card{background:white;padding:20px;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.card h3{margin:0;font-size:14px;color:#64748b}
+.card p{font-size:24px;font-weight:bold;margin:10px 0 0 0}
+.confirmed{color:#2563eb} .deaths{color:#dc2626} .recovered{color:#16a34a} .active{color:#ea580c}
+.chartBox{background:white;padding:15px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+</style>
+</head>
+<body>
+<h2>COVID-19 Early Outbreak Dashboard</h2>
+<div class="filters">
+<select id="country"></select>
+From: <input type="date" id="from" value="2020-02-01">
+To: <input type="date" id="to" value="2020-03-31">
+<button onclick="render()">Update</button>
+</div>
+<div class="cards">
+<div class="card"><h3>Confirmed</h3><p id="cConf" class="confirmed">0</p></div>
+<div class="card"><h3>Deaths</h3><p id="cDeath" class="deaths">0</p></div>
+<div class="card"><h3>Recovered</h3><p id="cRec" class="recovered">0</p></div>
+<div class="card"><h3>Active</h3><p id="cAct" class="active">0</p></div>
+</div>
+<div class="chartBox"><canvas id="line"></canvas></div>
+<div class="chartBox"><canvas id="bar"></canvas></div>
 <script>
 const FALLBACK={countries:[
-{c:"China",code:"CN",d:[{t:"2020-02-01",a:14380,b:304,r:331},{t:"2020-03-31",a:81554,b:3312,r:76128}]},
-{c:"Italy",code:"IT",d:[{t:"2020-02-20",a:3,b:0,r:0},{t:"2020-03-31",a:105792,b:12428,r:15729}]},
-{c:"South Korea",code:"KR",d:[{t:"2020-02-01",a:12,b:0,r:0},{t:"2020-03-31",a:9786,b:162,r:5408}]},
-{c:"United States",code:"US",d:[{t:"2020-02-01",a:6,b:0,r:0},{t:"2020-03-31",a:188172,b:3873,r:7024}]},
-{c:"South Africa",code:"ZA",d:[{t:"2020-03-05",a:1,b:0,r:0},{t:"2020-03-31",a:1353,b:5,r:31}]}
+{c:"China",code:"CN",d:[["2020-02-01",14380,304,328],["2020-02-15",66580,1524,6838],["2020-03-01",79968,2873,41675],["2020-03-15",81048,3204,67749],["2020-03-31",82214,3300,76088]]},
+{c:"South Korea",code:"KR",d:[["2020-02-01",12,0,2],["2020-02-15",28,0,7],["2020-03-01",3736,18,30],["2020-03-15",8162,75,834],["2020-03-31",9786,162,5408]]},
+{c:"United States",code:"US",d:[["2020-02-01",7,0,0],["2020-02-15",15,0,3],["2020-03-01",75,1,6],["2020-03-15",3244,62,12],["2020-03-31",188172,3873,7024]]},
+{c:"South Africa",code:"ZA",d:[["2020-02-01",0,0,0],["2020-02-15",0,0,0],["2020-03-05",1,0,0],["2020-03-15",61,0,4],["2020-03-31",1353,5,31]]}
 ]};
-let RAW=null;
+let RAW=FALLBACK; let lineChart, barChart;
 async function load(){
-try{let r=await fetch('./covid-19.json');RAW=await r.json();}catch(e){RAW={countries:FALLBACK.countries.map(x=>({country:x.c,code:x.code,data:x.d.map(y=>({date:y.t,confirmed:y.a,deaths:y.b,recovered:y.r}))}))};}
-console.log("JSON loads in browser:",RAW);
-console.log("Countries loaded:",RAW.countries.map(x=>x.country));
-RAW.countries.forEach(x=>console.log(x.country,x.data));
-let sel=document.getElementById('c');RAW.countries.forEach(o=>{let op=document.createElement('option');op.value=o.code;op.text=o.country;sel.add(op);});
+try{let r=await fetch('covid-19.json'); RAW=await r.json();}catch(e){RAW=FALLBACK;}
+let sel=document.getElementById('country'); sel.innerHTML='';
+RAW.countries.forEach(o=>{let op=document.createElement('option');op.value=o.code;op.text=o.c;sel.appendChild(op);});
 render();
-sel.onchange=render;
 }
 function render(){
-let code=document.getElementById('c').value||RAW.countries[0].code;
+let code=document.getElementById('country').value||RAW.countries[0].code;
 let ct=RAW.countries.find(x=>x.code==code);
-let labs=ct.data.map(x=>x.date);
-let conf=ct.data.map(x=>x.confirmed);
-let de=ct.data.map(x=>x.deaths);
-let rec=ct.data.map(x=>x.recovered);
-let last=ct.data[ct.data.length-1];
-document.getElementById('k').innerHTML=`<div class=card>Confirmed<b>${last.confirmed}</b></div><div class=card>Deaths<b>${last.deaths}</b></div><div class=card>Recovered<b>${last.recovered}</b></div>`;
-new Chart(document.getElementById('l'),{type:'line',data:{labels:labs,datasets:[{label:'Confirmed',data:conf},{label:'Deaths',data:de},{label:'Recovered',data:rec}]}});
-let daily=ct.data.map((v,i)=>i==0?v.confirmed:v.confirmed-ct.data[i-1].confirmed);
-new Chart(document.getElementById('b'),{type:'bar',data:{labels:labs,datasets:[{label:'New',data:daily}]}});
+let from=document.getElementById('from').value; let to=document.getElementById('to').value;
+let data=ct.d.filter(x=>x[0]>=from && x[0]<=to);
+if(data.length==0) data=ct.d;
+let last=data[data.length-1];
+document.getElementById('cConf').innerText=last[1].toLocaleString();
+document.getElementById('cDeath').innerText=last[2].toLocaleString();
+document.getElementById('cRec').innerText=last[3].toLocaleString();
+document.getElementById('cAct').innerText=(last[1]-last[2]-last[3]).toLocaleString();
+let labels=data.map(x=>x[0]);
+let conf=data.map(x=>x[1]);
+let daily=data.map((v,i)=>i==0?v[1]:v[1]-data[i-1][1]);
+if(lineChart) lineChart.destroy(); if(barChart) barChart.destroy();
+lineChart=new Chart(document.getElementById('line'),{type:'line',data:{labels:labels,datasets:[{label:'Confirmed',data:conf,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.1)',fill:true}]}});
+barChart=new Chart(document.getElementById('bar'),{type:'bar',data:{labels:labels,datasets:[{label:'New Cases',data:daily,backgroundColor:'#f59e0b'}]}});
 }
 load();
-</script></body></html>
+</script>
+</body>
+</html>
