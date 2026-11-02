@@ -1,9 +1,73 @@
-{
-  "countries": [
-    {"c": "China", "code": "CN", "d": [["2020-02-01", 14380, 304, 328], ["2020-02-10", 40235, 909, 3285], ["2020-02-20", 74675, 2121, 16115], ["2020-03-01", 79968, 2873, 41675], ["2020-03-15", 81048, 3204, 67749], ["2020-03-31", 82214, 3300, 76088]]},
-    {"c": "South Korea", "code": "KR", "d": [["2020-02-01", 12, 0, 2], ["2020-02-15", 28, 0, 7], ["2020-03-01", 3736, 18, 30], ["2020-03-10", 7513, 54, 247], ["2020-03-20", 8799, 102, 2612], ["2020-03-31", 9786, 162, 5408]]},
-    {"c": "United States", "code": "US", "d": [["2020-02-01", 7, 0, 0], ["2020-02-15", 15, 0, 3], ["2020-03-01", 75, 1, 6], ["2020-03-15", 3244, 62, 12], ["2020-03-20", 14250, 205, 112], ["2020-03-31", 188172, 3873, 7024]]},
-    {"c": "Italy", "code": "IT", "d": [["2020-02-01", 2, 0, 0], ["2020-02-15", 3, 0, 0], ["2020-03-01", 1128, 29, 50], ["2020-03-10", 10149, 631, 1004], ["2020-03-20", 41035, 3405, 4440], ["2020-03-31", 105792, 12428, 15729]]},
-    {"c": "South Africa", "code": "ZA", "d": [["2020-02-01", 0, 0, 0], ["2020-03-01", 0, 0, 0], ["2020-03-05", 1, 0, 0], ["2020-03-10", 7, 0, 1], ["2020-03-15", 61, 0, 4], ["2020-03-20", 202, 0, 2], ["2020-03-31", 1353, 5, 31]]}
-  ]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COVID-19 Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{font-family:Arial;background:#f5f7fb;margin:0;padding:15px}
+h2{text-align:center;color:#1e293b}
+.filters{background:white;padding:15px;border-radius:10px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+select,input,button{padding:10px;border-radius:8px;border:1px solid #cbd5e1}
+button{background:#2563eb;color:white;border:none;cursor:pointer}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin:20px 0}
+.card{background:white;padding:20px;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.card h3{margin:0;font-size:14px;color:#64748b}
+.card p{font-size:24px;font-weight:bold;margin:10px 0 0 0}
+.confirmed{color:#2563eb} .deaths{color:#dc2626} .recovered{color:#16a34a} .active{color:#ea580c}
+.chartBox{background:white;padding:15px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+</style>
+</head>
+<body>
+<h2>COVID-19 Early Outbreak Dashboard</h2>
+<div class="filters">
+<select id="country"></select>
+From: <input type="date" id="from" value="2020-02-01">
+To: <input type="date" id="to" value="2020-03-31">
+<button onclick="render()">Update</button>
+</div>
+<div class="cards">
+<div class="card"><h3>Confirmed</h3><p id="cConf" class="confirmed">0</p></div>
+<div class="card"><h3>Deaths</h3><p id="cDeath" class="deaths">0</p></div>
+<div class="card"><h3>Recovered</h3><p id="cRec" class="recovered">0</p></div>
+<div class="card"><h3>Active</h3><p id="cAct" class="active">0</p></div>
+</div>
+<div class="chartBox"><canvas id="line"></canvas></div>
+<div class="chartBox"><canvas id="bar"></canvas></div>
+<script>
+const FALLBACK={countries:[
+{c:"China",code:"CN",d:[["2020-02-01",14380,304,328],["2020-02-15",66580,1524,6838],["2020-03-01",79968,2873,41675],["2020-03-15",81048,3204,67749],["2020-03-31",82214,3300,76088]]},
+{c:"South Korea",code:"KR",d:[["2020-02-01",12,0,2],["2020-02-15",28,0,7],["2020-03-01",3736,18,30],["2020-03-15",8162,75,834],["2020-03-31",9786,162,5408]]},
+{c:"United States",code:"US",d:[["2020-02-01",7,0,0],["2020-02-15",15,0,3],["2020-03-01",75,1,6],["2020-03-15",3244,62,12],["2020-03-31",188172,3873,7024]]},
+{c:"South Africa",code:"ZA",d:[["2020-02-01",0,0,0],["2020-02-15",0,0,0],["2020-03-05",1,0,0],["2020-03-15",61,0,4],["2020-03-31",1353,5,31]]}
+]};
+let RAW=FALLBACK; let lineChart, barChart;
+async function load(){
+try{let r=await fetch('covid-19.json'); RAW=await r.json();}catch(e){RAW=FALLBACK;}
+let sel=document.getElementById('country'); sel.innerHTML='';
+RAW.countries.forEach(o=>{let op=document.createElement('option');op.value=o.code;op.text=o.c;sel.appendChild(op);});
+render();
 }
+function render(){
+let code=document.getElementById('country').value||RAW.countries[0].code;
+let ct=RAW.countries.find(x=>x.code==code);
+let from=document.getElementById('from').value; let to=document.getElementById('to').value;
+let data=ct.d.filter(x=>x[0]>=from && x[0]<=to);
+if(data.length==0) data=ct.d;
+let last=data[data.length-1];
+document.getElementById('cConf').innerText=last[1].toLocaleString();
+document.getElementById('cDeath').innerText=last[2].toLocaleString();
+document.getElementById('cRec').innerText=last[3].toLocaleString();
+document.getElementById('cAct').innerText=(last[1]-last[2]-last[3]).toLocaleString();
+let labels=data.map(x=>x[0]);
+let conf=data.map(x=>x[1]);
+let daily=data.map((v,i)=>i==0?v[1]:v[1]-data[i-1][1]);
+if(lineChart) lineChart.destroy(); if(barChart) barChart.destroy();
+lineChart=new Chart(document.getElementById('line'),{type:'line',data:{labels:labels,datasets:[{label:'Confirmed',data:conf,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.1)',fill:true}]}});
+barChart=new Chart(document.getElementById('bar'),{type:'bar',data:{labels:labels,datasets:[{label:'New Cases',data:daily,backgroundColor:'#f59e0b'}]}});
+}
+load();
+</script>
+</body>
+</html>
