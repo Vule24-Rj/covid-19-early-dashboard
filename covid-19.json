@@ -1,18 +1,33 @@
-{"countries":[
-{"country":"China","code":"CN","data":[
-{"date":"2020-02-01","confirmed":14380,"deaths":304,"recovered":331},
-{"date":"2020-02-20","confirmed":75569,"deaths":2239,"recovered":18264},
-{"date":"2020-03-31","confirmed":81554,"deaths":3312,"recovered":76128}]},
-{"country":"Italy","code":"IT","data":[
-{"date":"2020-02-20","confirmed":3,"deaths":0,"recovered":0},
-{"date":"2020-03-31","confirmed":105792,"deaths":12428,"recovered":15729}]},
-{"country":"South Korea","code":"KR","data":[
-{"date":"2020-02-01","confirmed":12,"deaths":0,"recovered":0},
-{"date":"2020-03-31","confirmed":9786,"deaths":162,"recovered":5408}]},
-{"country":"United States","code":"US","data":[
-{"date":"2020-02-01","confirmed":6,"deaths":0,"recovered":0},
-{"date":"2020-03-31","confirmed":188172,"deaths":3873,"recovered":7024}]},
-{"country":"South Africa","code":"ZA","data":[
-{"date":"2020-03-05","confirmed":1,"deaths":0,"recovered":0},
-{"date":"2020-03-31","confirmed":1353,"deaths":5,"recovered":31}]}
-]}
+{
+  "source": "COVID-19 Data Repository",
+  "period": "2020-02-01 to 2020-03-31",
+  "countries": [
+    {
+      "country": "China",
+      "code": "CN",
+      "data": [
+        {"date":"2020-02-01","confirmed":14380,"deaths":304,"recovered":331},
+        {"date":"2020-02-20","confirmed":75569,"deaths":2239,"recovered":18264},
+        {"date":"2020-03-01","confirmed":80026,"deaths":2912,"recovered":44518},
+        {"date":"2020-03-31","confirmed":81554,"deaths":3312,"recovered":76128}
+      ]
+    },
+    {
+      "country": "South Africa",
+      "code": "ZA",
+      "data": [
+        {"date":"2020-03-05","confirmed":1,"deaths":0,"recovered":0},
+        {"date":"2020-03-20","confirmed":202,"deaths":0,"recovered":0},
+        {"date":"2020-03-31","confirmed":1353,"deaths":5,"recovered":31}
+      ]
+    },
+    {
+      "country": "United States",
+      "code": "US",
+      "data": [
+        {"date":"2020-03-01","confirmed":68,"deaths":1,"recovered":3},
+        {"date":"2020-03-31","confirmed":188172,"deaths":3873,"recovered":7024}
+      ]
+    }
+  ]
+}
