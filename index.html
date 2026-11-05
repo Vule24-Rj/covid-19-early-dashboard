@@ -18,27 +18,22 @@ button{background:#2563eb;color:white}
 </head>
 <body>
 <h2>COVID-19 Early Outbreak Dashboard</h2>
-
 <div class="box">
 <select id="countrySelect"></select><br>
 From: <input type="date" id="fromDate" value="2020-02-01">
 To: <input type="date" id="toDate" value="2020-03-31"><br>
 <button onclick="updateDashboard()">Update</button>
 </div>
-
 <div class="cards">
 <div class="card">Confirmed<br><b class="blue" id="confirmed">0</b></div>
 <div class="card">Deaths<br><b class="red" id="deaths">0</b></div>
 <div class="card">Recovered<br><b class="green" id="recovered">0</b></div>
 <div class="card">Active<br><b class="orange" id="active">0</b></div>
 </div>
-
 <div class="box"><canvas id="myChart"></canvas></div>
-
 <script>
 let allData = [];
 let myChart = null;
-
 fetch('covid-19.json')
 .then(r => r.json())
 .then(json => {
@@ -52,7 +47,6 @@ fetch('covid-19.json')
   });
   updateDashboard();
 });
-
 function updateDashboard(){
   const name = document.getElementById('countrySelect').value;
   const country = allData.find(c => c.country === name);
@@ -66,13 +60,12 @@ function updateDashboard(){
   document.getElementById('deaths').textContent = last.deaths || 0;
   document.getElementById('recovered').textContent = last.recovered || 0;
   document.getElementById('active').textContent = (last.confirmed||0) - (last.deaths||0) - (last.recovered||0);
-
   if(myChart) myChart.destroy();
   myChart = new Chart(document.getElementById('myChart'), {
-    type:'bar'
+    type:'bar',
     data:{
       labels: show.map(d=>d.date),
-      datasets:[{label:'Confirmed', data: show.map(d=>d.confirmed), borderColor:'#60a5fa', fill:false}]
+      datasets:[{label:'Confirmed', data: show.map(d=>d.confirmed), backgroundColor:'#60a5fa'}]
     },
     options:{plugins:{legend:{labels:{color:'white'}}}, scales:{x:{ticks:{color:'white'}}, y:{ticks:{color:'white'}}}}
   });
